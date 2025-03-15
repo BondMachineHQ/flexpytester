@@ -1,0 +1,8 @@
+x = sp.Symbol('x', real=False)
+y = sp.Symbol('y', real=False)
+z = sp.Symbol('z', real=False)
+symbols = [x,y,z,]
+testRanges = {'z_re': [-1,1,0.1]}
+with sp.evaluate(False):
+	#spExpr = sp.Array([[[x, y], [z, x*z]], [[1, x*y], [1/x, x/y]]])
+	spExpr = ( x + 5 ) + ( y + x ) + x +x + x +x +x
