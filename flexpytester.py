@@ -23,8 +23,62 @@ Options:
 from docopt import docopt
 import sympy as sp
 import sys
+import random
+
+DECAY_FACTOR = 3.0
+SYM_NUM_PROP = 0.5
+NUM_RANGE = 10
+EVALUATE_GENERATED = False
+SCALAR_FACTOR = 1.0
+VECTOR_FACTOR = 1.0
+MATRIX_FACTOR = 1.0
+TENSOR_FACTOR = 1.0
+
+def decay(level):
+	return 1.0 / (1.0 + level/DECAY_FACTOR)
+
+def generator_engine(symbols, level):
+	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
+	if level == 0:
+		scalarFactor = SCALAR_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
+		vectorFactor = scalarFactor + VECTOR_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
+		matrixFactor = vectorFactor + MATRIX_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
+		# Choose a random number
+		randNum = random.random()
+		if randNum < scalarFactor:
+			# Generate a scalar
+			return generator_engine(symbols, level + 1)
+		elif randNum < vectorFactor:
+			# Generate a vector
+			print ("Vector")
+		elif randNum < matrixFactor:
+			# Generate a matrix
+			print ("Matrix")
+		else:
+			# Generate a tensor
+			print ("Tensor")
+	else:
+
+		if random.random() > decay(level):
+		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
+			if random.random() > SYM_NUM_PROP:
+				# Generate a random number
+				return random.uniform(-NUM_RANGE, NUM_RANGE)
+			else:
+				return random.choice(symbols)
+		else:
+		# Otherwise we generate a random operator
+			# Choose a random operator
+			operator = random.choice(["+"])
+			# Generate the left and right branches
+			left = generator_engine(symbols, level + 1)
+			right = generator_engine(symbols, level + 1)
+			# Generate the expression
+			if operator == "+":
+				return left + right
 
 def main():
+	random.seed()
 	arguments = docopt(__doc__, version='Flexpytester 0.0')
 
 	# Create the expression
@@ -54,7 +108,7 @@ def main():
 	elif arguments["--generate"]:
 		localParams = {'symbols': None, 'testRanges': None}
 		globalParams = {'sp': sp}
-		# exec(expr, globalParams, localParams)
+		exec(expr, globalParams, localParams)
 		symbols = localParams['symbols']
 		testRanges = localParams['testRanges']
 
@@ -63,6 +117,8 @@ def main():
 			sys.exit(1)
 	
 		# TODO Place here the code to generate the expression
+		with sp.evaluate(EVALUATE_GENERATED):
+			print (generator_engine(symbols, 0))
 
 		# TODO Generate also the test ranges if all the parameters are valid
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
@@ -72,8 +128,5 @@ def main():
 		print("Error: Invalid arguments")
 		sys.exit(1)
 	
-	print (arguments)
-
-
 if __name__ == '__main__':
 	main()
