@@ -166,8 +166,17 @@ def main():
 			spExpr = genExpr
 			# Print the generated expression
 			print("---")
-			print(sp.srepr(genExpr))
+			print(sp.python(genExpr))
 			print("---")
+
+			if arguments["-s"] != None:
+				# Save the generated expression
+				f = open(arguments["-s"], "w")
+				f.write("from sympy import *\n")
+				f.write(sp.python(genExpr))
+				f.write("\nspExpr = e\n")
+				f.write("symbols = ["+",".join([str(s) for s in genExpr.free_symbols])+"]\n")
+				f.close
 			
 		# TODO Generate also the test ranges if all the parameters are valid
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
