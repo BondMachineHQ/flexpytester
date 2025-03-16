@@ -28,7 +28,7 @@ import random
 DECAY_FACTOR = 3.0
 SYM_NUM_PROP = 0.5
 NUM_RANGE = 10
-MAX_ELEMENTS = 10
+MAX_ELEMENTS = 5
 MAX_RANK = 3
 EVALUATE_GENERATED = False
 SCALAR_FACTOR = 1.0
@@ -96,7 +96,7 @@ def generator_engine(symbols, level):
 			for i in range(rank):
 				elemNumList.append(random.randint(1, MAX_ELEMENTS))
 			with sp.evaluate(EVALUATE_GENERATED):
-				tensor=sp.Array(generate_list(symbols, elemNumList, level + 1, rank))
+				tensor=sp.Array(generate_list(symbols, elemNumList, level, rank))
 				return tensor
 	else:
 
@@ -117,6 +117,8 @@ def generator_engine(symbols, level):
 			# Generate the expression
 			if operator == "+":
 				return left + right
+			
+			# TODO Add more operators
 
 def main():
 	random.seed()
@@ -133,7 +135,7 @@ def main():
 	if arguments["--compute"]:
 		localParams = {'spExpr': None, 'testRanges': None}
 		globalParams = {'sp': sp}
-		# exec(expr, globalParams, localParams)
+		exec(expr, globalParams, localParams)
 		spExpr = localParams['spExpr']
 		testRanges = localParams['testRanges']
 
@@ -157,9 +159,11 @@ def main():
 			print("Error: Symbols not valid")
 			sys.exit(1)
 	
+		spExpr = None
 		# Generate the expression
 		with sp.evaluate(EVALUATE_GENERATED):
 			genExpr=generator_engine(symbols, 0)
+			spExpr = genExpr
 			# Print the generated expression
 			print("---")
 			print(sp.srepr(genExpr))
