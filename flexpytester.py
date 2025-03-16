@@ -28,9 +28,11 @@ import random
 DECAY_FACTOR = 3.0
 SYM_NUM_PROP = 0.5
 NUM_RANGE = 10
+MAX_ELEMENTS = 10
+MAX_RANK = 4
 EVALUATE_GENERATED = False
 SCALAR_FACTOR = 1.0
-VECTOR_FACTOR = 1.0
+VECTOR_FACTOR = 10.0
 MATRIX_FACTOR = 1.0
 TENSOR_FACTOR = 1.0
 
@@ -50,13 +52,33 @@ def generator_engine(symbols, level):
 			return generator_engine(symbols, level + 1)
 		elif randNum < vectorFactor:
 			# Generate a vector
-			print ("Vector")
+			elemNum = random.randint(1, MAX_ELEMENTS)
+			list = []
+			for i in range(elemNum):
+				list.append(generator_engine(symbols, level + 1))
+			with sp.evaluate(EVALUATE_GENERATED):
+				vector = sp.Array(list)
+			return vector
+			
 		elif randNum < matrixFactor:
-			# Generate a matrix
-			print ("Matrix")
+			elemNumN = random.randint(1, MAX_ELEMENTS)
+			elemNumM = random.randint(1, MAX_ELEMENTS)
+			listN = []
+			listM = []
+			for i in range(elemNumN):
+				listN.append(generator_engine(symbols, level + 1))
+			for i in range(elemNumM):
+				listM.append(generator_engine(symbols, level + 1))
+			with sp.evaluate(EVALUATE_GENERATED):
+				matrix = sp.Matrix(listN, listM)
+			return matrix
+
 		else:
-			# Generate a tensor
-			print ("Tensor")
+			rank = random.randint(3, MAX_RANK)
+			elemNumList = []
+			for i in range(rank):
+				elemNumList.append(random.randint(1, MAX_ELEMENTS))
+			print ("TODO Tensor")
 	else:
 
 		if random.random() > decay(level):
@@ -118,8 +140,8 @@ def main():
 	
 		# TODO Place here the code to generate the expression
 		with sp.evaluate(EVALUATE_GENERATED):
-			print (generator_engine(symbols, 0))
-
+			genExpr=generator_engine(symbols, 0)
+			
 		# TODO Generate also the test ranges if all the parameters are valid
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
 			print ("TODO")
