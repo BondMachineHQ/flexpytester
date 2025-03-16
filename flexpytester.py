@@ -29,15 +29,26 @@ DECAY_FACTOR = 3.0
 SYM_NUM_PROP = 0.5
 NUM_RANGE = 10
 MAX_ELEMENTS = 10
-MAX_RANK = 4
+MAX_RANK = 3
 EVALUATE_GENERATED = False
 SCALAR_FACTOR = 1.0
-VECTOR_FACTOR = 10.0
+VECTOR_FACTOR = 1.0
 MATRIX_FACTOR = 1.0
 TENSOR_FACTOR = 1.0
 
 def decay(level):
 	return 1.0 / (1.0 + level/DECAY_FACTOR)
+
+def generate_list(symbols, numElems, level, max):
+	list = []
+	n = numElems[level]
+	if level == max - 1:
+		for i in range(n):
+			list.append(generator_engine(symbols, level + 1))
+	else:
+		for i in range(n):
+			list.append(generate_list(symbols, numElems, level + 1, max))
+	return list
 
 def generator_engine(symbols, level):
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
@@ -49,9 +60,11 @@ def generator_engine(symbols, level):
 		randNum = random.random()
 		if randNum < scalarFactor:
 			# Generate a scalar
+			print("Generating scalar:")
 			return generator_engine(symbols, level + 1)
 		elif randNum < vectorFactor:
 			# Generate a vector
+			print("Generating vector:")
 			elemNum = random.randint(1, MAX_ELEMENTS)
 			list = []
 			for i in range(elemNum):
@@ -61,24 +74,30 @@ def generator_engine(symbols, level):
 			return vector
 			
 		elif randNum < matrixFactor:
+			# Generate a matrix
+			print("Generating matrix:")
 			elemNumN = random.randint(1, MAX_ELEMENTS)
 			elemNumM = random.randint(1, MAX_ELEMENTS)
 			listN = []
-			listM = []
 			for i in range(elemNumN):
-				listN.append(generator_engine(symbols, level + 1))
-			for i in range(elemNumM):
-				listM.append(generator_engine(symbols, level + 1))
+				listM = []
+				for j in range(elemNumM):
+					listM.append(generator_engine(symbols, level + 1))
+				listN.append(listM)
 			with sp.evaluate(EVALUATE_GENERATED):
-				matrix = sp.Matrix(listN, listM)
-			return matrix
+				matrix = sp.Matrix(listN)
+				return matrix
 
 		else:
+			# Generate a tensor
+			print("Generating tensor:")
 			rank = random.randint(3, MAX_RANK)
 			elemNumList = []
 			for i in range(rank):
 				elemNumList.append(random.randint(1, MAX_ELEMENTS))
-			print ("TODO Tensor")
+			with sp.evaluate(EVALUATE_GENERATED):
+				tensor=sp.Array(generate_list(symbols, elemNumList, level + 1, rank))
+				return tensor
 	else:
 
 		if random.random() > decay(level):
@@ -138,9 +157,13 @@ def main():
 			print("Error: Symbols not valid")
 			sys.exit(1)
 	
-		# TODO Place here the code to generate the expression
+		# Generate the expression
 		with sp.evaluate(EVALUATE_GENERATED):
 			genExpr=generator_engine(symbols, 0)
+			# Print the generated expression
+			print("---")
+			print(sp.srepr(genExpr))
+			print("---")
 			
 		# TODO Generate also the test ranges if all the parameters are valid
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
