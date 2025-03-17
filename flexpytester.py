@@ -100,7 +100,7 @@ def generator_engine(symbols, level):
 				return tensor
 	else:
 
-		if random.random() > decay(level):
+		if level > 2 and random.random() > decay(level):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > SYM_NUM_PROP:
 				# Generate a random number
