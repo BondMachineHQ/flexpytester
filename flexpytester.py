@@ -176,6 +176,7 @@ def main():
 				f.write(sp.python(genExpr))
 				f.write("\nspExpr = e\n")
 				f.write("symbols = ["+",".join([str(s) for s in genExpr.free_symbols])+"]\n")
+				f.write("testRanges = "+str(testRanges)+"\n")
 				f.close
 			
 		# TODO Generate also the test ranges if all the parameters are valid
