@@ -54,10 +54,41 @@ def Symbol_extractor(text_file):
 		return f"Error executing command: {e.stderr}"
 	except FileNotFoundError:
 		return "Error: 'flexpy' command not found. Ensure it is installed and in your PATH."
+	
 
+def creation_test_ranges(diz1 , diz2 , text_file):
+	ranges = []
+	#creation of an array of 0s with the same length of the sum of the input dictionaries dimentions
+	for i in range(len(diz1)+len(diz2)):
+		ranges.append(0)
 
+	with open(text_file, 'r', encoding='utf-8') as f:
+		content = f.read()
 
-testRanges = {}
+		#finding testRanges block:
+		pattern = r"""testRanges\s*=\s*\{(?:[^{}]|\n|\s)*\}"""
+		print(pattern)
+		match = re.search(pattern, content, re.MULTILINE)
+		print(match)
+		match = match.group(0)
+		print(match)
+		clean_match = match.split("=")[1].strip()
+		print(clean_match)
+		
+
+		if clean_match:
+			dizionario = eval(clean_match) #DANGEROUS
+			print(dizionario)
+			print(type(dizionario))
+			ranges = list(dizionario.values())
+			print(ranges)
+			print(type(ranges))
+			return ranges
+		else:
+			return None
+
+	
+	
 
 for symbol in sorted_symbols:
 	if symbol.is_real:

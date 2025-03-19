@@ -3,7 +3,14 @@ x = Symbol('x', real=False)
 y = Symbol('y', real=False)
 z = Symbol('z', real=False)
 symbols = [x,y,z,]
-testRanges = {'z_re': [-1,1,0.1]}
+testRanges = {'x_real': list(np.arange(-1,1.1,0.5)),
+	'x_imag': list(np.arange(-1,1.1,0.5)),
+	'y_real': list(np.arange(-1,1.1,0.5)),
+	'y_imag': list(np.arange(-1,1.1,0.5)),
+	'z_real': list(np.arange(-1,1.1,0.5)),
+	'z_imag': list(np.arange(-1,1.1,0.5)),
+	}
+
 with evaluate(False):
 	#spExpr = Array([[[x, y], [z, x*z]], [[1, x*y], [1/x, x/y]]])
 	spExpr = ( x + 5 ) + ( y + x ) + x +x + x +x +x
