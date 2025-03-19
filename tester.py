@@ -94,7 +94,11 @@ results = []
 for values in itertools.product(*lista):  # Genera tutte le combinazioni possibili
     i, j, k, l, m, n = values  # Estrai i valori secondo il numero di liste
     res = spExpr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag()
-    print(res)
+    
+     for spExptr in serializeExpr(self, expr):
+		res = spExptr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag
+
+    		print(res)
     input()
     results.append(res)
 	
@@ -103,5 +107,15 @@ for values in itertools.product(*lista):  # Genera tutte le combinazioni possibi
           
 
 
-
+def serializeExpr(self, expr):
+	if expr.is_Matrix:
+		for i in range(expr.shape[0]):
+			for j in range(expr.shape[1]):
+				yield expr[i,j]
+	elif type(expr) == sp.tensor.array.dense_ndim_array.ImmutableDenseNDimArray:
+		fl = sp.flatten(expr)
+		for i in fl:
+			yield i
+	else:
+		yield expr
 
