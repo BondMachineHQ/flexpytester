@@ -29,6 +29,7 @@ def creation_test_ranges(diz1 , diz2 , text_file):
 	#creation of an array of 0s with the same length of the sum of the input dictionaries dimentions
 	for i in range(len(diz1)+len(diz2)):
 		ranges.append(0)
+	print(ranges)
 
 	with open(text_file, 'r', encoding='utf-8') as f:
 		content = f.read()

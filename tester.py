@@ -86,22 +86,7 @@ def creation_test_ranges(diz1 , diz2 , text_file):
 			return ranges
 		else:
 			return None
-
-	
-	
-
-for symbol in sorted_symbols:
-	if symbol.is_real:
-		testRanges[symbol.name + '_re'] = np.arange(-1,1.1,0.5)
-	else:
-		testRanges[symbol.name + '_re'] = np.arange(-1,1.1,0.5)
-		testRanges[symbol.name + '_im'] = np.arange(-1,1.1,0.5)
 		
-#Converto dizionario in una lista di arrays:
-lista = list(testRanges.values())
-#print(lista)
-
-#print(lista[0][1])
 results = []
 # for t in range(len(lista)):
 #     print(lista[t])
