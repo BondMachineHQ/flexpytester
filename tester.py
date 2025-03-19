@@ -2,6 +2,8 @@ import numpy as np
 import sympy as sp
 from sympy import *
 import itertools
+import subprocess
+import re 
 
 
 x = Symbol('x', real=False)
@@ -14,30 +16,44 @@ symbols = [x,y,z]
 with evaluate(False):
 	#spExpr = Array([[[x, y], [z, x*z]], [[1, x*y], [1/x, x/y]]])
 	spExpr = x + y + z + 1
-	
-#Reading Symbols:
-simboli = []
-for i in spExpr.atoms(Symbol):
-	simboli.append(i)
-#simboli.sort()
-#Trovare una soluzione al sorting dei simboli
 
-stringhe = []
-for i in simboli:
-	stringhe.append(str(i))
-	
-print(stringhe)
-stringhe.sort()
-print(stringhe)
-sorted_symbols = []
-for i in stringhe:
-	sorted_symbols.append(Symbol(i))
+#function to execute: flexpy -e expression.txt --basm --iomap-only
+#output should be: an ordered list of symbols
+def Symbol_extractor(text_file):
 
-	
+	command = ["flexpy", "-e", text_file, "--basm", "--iomap-only"]
+	try:
+		pos_real = {}
+		pos_imag = {}
+		result = subprocess.run(command, capture_output=True, text=True, check=True)
+		output_lines = result.stdout.strip().split('\n')
 
-print(sorted_symbols)
-#Some Checks:
-print(simboli)
+		if len(output_lines) >=2:
+			first_line = output_lines[0]
+			exec("first_line_array = " + first_line)
+			
+			for i in range(len(first_line_array)):
+				s = first_line_array[i]
+				if s.startswith('real: '):
+					s=s[6:]
+					pos_real[s] = i
+				elif s.startswith('imag: '):
+					s=s[6:]
+					pos_imag[s] = i
+
+			values = []
+
+			for item in first_line_array:
+				values.append(item.split(': ')[1])
+
+			single_values = list(set(values))
+			return single_values, pos_real, pos_imag	
+		else:
+			return "Error: Unexpected output format."
+	except subprocess.CalledProcessError as e:
+		return f"Error executing command: {e.stderr}"
+	except FileNotFoundError:
+		return "Error: 'flexpy' command not found. Ensure it is installed and in your PATH."
 
 
 
@@ -49,14 +65,7 @@ for symbol in sorted_symbols:
 	else:
 		testRanges[symbol.name + '_re'] = np.arange(-1,1.1,0.5)
 		testRanges[symbol.name + '_im'] = np.arange(-1,1.1,0.5)
-
-#Capire come gestire numeri solo immaginari
-
-print(testRanges)
-
-
-
-
+		
 #Converto dizionario in una lista di arrays:
 lista = list(testRanges.values())
 #print(lista)
@@ -95,15 +104,13 @@ for values in itertools.product(*lista):  # Genera tutte le combinazioni possibi
     i, j, k, l, m, n = values  # Estrai i valori secondo il numero di liste
     res = spExpr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag()
     
-     for spExptr in serializeExpr(self, expr):
-		res = spExptr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag
-
-    		print(res)
-    input()
-    results.append(res)
-	
-#print(results)
-
+for spExptr in serializeExpr(self, expr):
+	res = spExptr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag 
+		#print(res)
+	print(res)
+		
+	print(res)
+results.append(res)
           
 
 
