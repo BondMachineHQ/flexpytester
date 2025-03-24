@@ -19,10 +19,13 @@ print(pos_real)
 print(pos_imag)
 
 
+
+
 values = []
 
 for item in first_line_array:
 	values.append(item.split(': ')[1])
+	single_values = list(set(values))
 
 
-print(values)
+print(single_values)

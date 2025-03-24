@@ -116,7 +116,7 @@ results = []
 #                                 input()
 
 
-for values in itertools.product(*lista):  # Genera tutte le combinazioni possibili
+'''for values in itertools.product(*lista):  # Genera tutte le combinazioni possibili
     i, j, k, l, m, n = values  # Estrai i valori secondo il numero di liste
     res = spExpr.evalf(subs={x: i + j*I, y: k + l*I, z: m + n*I}).as_real_imag()
     
@@ -126,7 +126,20 @@ for spExptr in serializeExpr(self, expr):
 	print(res)
 		
 	print(res)
-results.append(res)
+results.append(res)'''
+
+
+def evaluate_expression(spExpr, variables, lista):
+	
+
+    results = []
+    for values in itertools.product(*lista):  #It generates all possible combination of values
+        subs_dict = {} #That is the dictionary i have to provide to evalf
+        for var, (val_r, val_i) in zip(variables, zip(*[iter(values)]*2)):
+            subs_dict[var] = val_r + val_i * sp.I
+        res = spExpr.evalf(subs=subs_dict).as_real_imag()
+        results.append(res)
+    return results
           
 
 
