@@ -2,15 +2,15 @@ from sympy import *
 x = Symbol('x', real=False)
 y = Symbol('y', real=False)
 z = Symbol('z', real=False)
-symbols = [x,y,z,]
-testRanges = {'x_real': list(np.arange(-1,1.1,0.5)),
-	'x_imag': list(np.arange(-1,1.1,0.5)),
-	'y_real': list(np.arange(-1,1.1,0.5)),
-	'y_imag': list(np.arange(-1,1.1,0.5)),
-	'z_real': list(np.arange(-1,1.1,0.5)),
-	'z_imag': list(np.arange(-1,1.1,0.5)),
+symbols = [x]
+testRanges = {'real: x': list(np.arange(-1,1,1)),
+	'imag: x': list(np.arange(-3,-1,1)),
+	'real: y': list(np.arange(-1,1.1,0.5)),
+	'imag: y': list(np.arange(-1,1.1,0.5)),
+	'real: z': list(np.arange(-1,1.1,0.5)),
+	'imag: z': list(np.arange(-1,1.1,0.5)),
 	}
 
 with evaluate(False):
 	#spExpr = Array([[[x, y], [z, x*z]], [[1, x*y], [1/x, x/y]]])
-	spExpr = ( x + 5 ) + ( y + x ) + x +x + x +x +x
+	spExpr = x + 1

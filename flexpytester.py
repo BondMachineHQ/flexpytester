@@ -4,8 +4,8 @@
 """Flexpytester
 
 Usage:
-  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--csv] [--prefix]
-  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-t <type>] [--csv] [--prefix]
+  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--prefix]
+  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-t <type>] [--prefix]
   flexpytester -h | --help
 
 Options:
@@ -16,14 +16,16 @@ Options:
   -i <inputfile>                                    The inputs file name for the generated inputs.
   -s <outputexpression>                             The output expression (when generating).
   -t <type>                                         The type of the numbers, if not specified it is set to float32.
-  --csv                                             The output file is in CSV format.
   --prefix                                          Prefix numbers with the prefix type as given by bmnumbers.
 """
 
 from docopt import docopt
 import sympy as sp
+import numpy as np
 import sys
 import random
+import subprocess
+import itertools
 
 DECAY_FACTOR = 3.0
 SYM_NUM_PROP = 0.5
@@ -120,6 +122,125 @@ def generator_engine(symbols, level):
 			
 			# TODO Add more operators
 
+#function to execute: flexpy -e expression.txt --basm --iomap-only
+#output should be: an ordered list of symbols
+def symbolExtractor(exprFile):
+	command = ["flexpy", "-e", exprFile, "--basm", "--iomap-only"]
+	try:
+		pos_real = {}
+		pos_imag = {}
+		result = subprocess.run(command, capture_output=True, text=True, check=True)
+		output_lines = result.stdout.strip().split('\n')
+		
+		if len(output_lines) >=2:
+			first_line = output_lines[0]
+			localParams = {'first_line_array': None}
+			exec("first_line_array = " + first_line, localParams)
+			first_line_array = localParams['first_line_array']
+
+			for i in range(len(first_line_array)):
+				s = first_line_array[i]
+				if s.startswith('real: '):
+					s=s[6:]
+					pos_real[s] = i
+				elif s.startswith('imag: '):
+					s=s[6:]
+					pos_imag[s] = i
+
+			symbolsNames = []
+			for item in first_line_array:
+				symbolsNames.append(item)
+
+			return symbolsNames, pos_real, pos_imag	
+		else:
+			print("Error: No symbols found in the expression")
+			sys.exit(1)
+	except subprocess.CalledProcessError as e:
+		print("Error: flexpy command failed with error code "+str(e.returncode))
+		sys.exit(1)
+	except FileNotFoundError:
+		print("Error: flexpy command not found")
+		sys.exit(1)
+
+def generateLists(symbolsNames, testRanges, pos_real, pos_imag):
+	lists=[]
+
+	for s in symbolsNames:
+		if s in testRanges:
+			lists.append(testRanges[s])
+		else:
+			print("Error: Symbol "+s+" not found in the testRanges")
+			sys.exit(1)
+	return lists
+			
+def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
+	resultsInputs = []
+	resultsOutputs = []
+	for values in itertools.product(*lists):  #It generates all possible combination of values
+		subs_dict = {} #That is the dictionary i have to provide to evalf
+		inputs = []
+		outputs = []
+		for var in range(len(lists)):
+			inputs.append(0.0)
+		
+		for s in symbols:
+			sName = str(s)
+			val_r, val_i = 0,0
+			if sName in pos_real:
+				val_r = values[pos_real[sName]]
+				inputs[pos_real[sName]] = val_r
+			if sName in pos_imag:
+				val_i = values[pos_imag[sName]]
+				inputs[pos_imag[sName]] = val_i
+
+			subs_dict[s] = val_r + val_i * sp.I
+
+		for exp in serializeExpr(spExpr):
+			res = exp.evalf(subs=subs_dict).as_real_imag()
+			outputs.append(res[0])
+			outputs.append(res[1])
+
+		resultsInputs.append(inputs)
+		resultsOutputs.append(outputs)
+	return resultsInputs, resultsOutputs
+
+def generateRanges(spExpr, symbols, exprFile, testRanges, outputfile, inputfile, prefix=""):
+	symbolsNames, pos_real, pos_imag = symbolExtractor(exprFile)
+	# print(symbolsNames, pos_real, pos_imag)
+	lists = generateLists(symbolsNames, testRanges, pos_real, pos_imag)
+	# print(lists)
+	resultsInputs, resultsOutputs = evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag)
+	# print(resultsInputs, resultsOutputs)
+	with open(inputfile, "w") as f:
+		for inputs in resultsInputs:
+			for inIdx in range(len(inputs)):
+				inp = inputs[inIdx]
+				f.write(prefix+"%f" % inp)
+				if inIdx != len(inputs) - 1:
+					f.write(",")
+			f.write('\n')
+	with open(outputfile, "w") as f:
+		for outputs in resultsOutputs:
+			for outIdx in range(len(outputs)):
+				out = outputs[outIdx]
+				f.write(prefix+"%f" % out)
+				if outIdx != len(outputs) - 1:
+					f.write(",")
+			f.write('\n')
+
+
+def serializeExpr(expr):
+	if expr.is_Matrix:
+		for i in range(expr.shape[0]):
+			for j in range(expr.shape[1]):
+				yield expr[i,j]
+	elif type(expr) == sp.tensor.array.dense_ndim_array.ImmutableDenseNDimArray:
+		fl = sp.flatten(expr)
+		for i in fl:
+			yield i
+	else:
+		yield expr
+
 def main():
 	random.seed()
 	arguments = docopt(__doc__, version='Flexpytester 0.0')
@@ -133,16 +254,15 @@ def main():
 	f.close()
 
 	if arguments["--compute"]:
-		localParams = {'spExpr': None, 'testRanges': None}
-		globalParams = {'sp': sp}
+		localParams = {'spExpr': None, 'testRanges': None, 'symbols': None}
+		globalParams = {'sp': sp, 'np': np}
 		exec(expr, globalParams, localParams)
 		spExpr = localParams['spExpr']
 		testRanges = localParams['testRanges']
+		symbols = localParams['symbols']
 
-		# TODO Generate the test ranges if all the parameters are valid
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
-			print ("TODO")
-
+			generateRanges(spExpr, symbols, exprFile, testRanges, arguments["-o"], arguments["-i"])
 
 		if spExpr is None:
 			print("Error: The expression is not valid")
@@ -150,7 +270,7 @@ def main():
 		
 	elif arguments["--generate"]:
 		localParams = {'symbols': None, 'testRanges': None}
-		globalParams = {'sp': sp}
+		globalParams = {'sp': sp, 'np': np}
 		exec(expr, globalParams, localParams)
 		symbols = localParams['symbols']
 		testRanges = localParams['testRanges']
@@ -177,11 +297,10 @@ def main():
 				f.write("\nspExpr = e\n")
 				f.write("symbols = ["+",".join([str(s) for s in genExpr.free_symbols])+"]\n")
 				f.write("testRanges = "+str(testRanges)+"\n")
-				f.close
-			
-		# TODO Generate also the test ranges if all the parameters are valid
-		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
-			print ("TODO")
+				f.close	
+				f.flush()
+				if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
+					generateRanges(spExpr, symbols, arguments["-s"], testRanges, arguments["-o"], arguments["-i"])
 
 	else:
 		print("Error: Invalid arguments")
