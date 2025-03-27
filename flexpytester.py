@@ -4,8 +4,8 @@
 """Flexpytester
 
 Usage:
-  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--prefix]
-  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-t <type>] [--prefix]
+  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--prefix] [--config=<key=value>]...
+  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-t <type>] [--prefix] [--config=<key=value>]...
   flexpytester -h | --help
 
 Options:
@@ -18,6 +18,7 @@ Options:
   -s <outputexpression>                             The output expression (when generating).
   -t <type>                                         The type of the numbers, if not specified it is set to float32.
   --prefix                                          Prefix numbers with the prefix type as given by bmnumbers.
+  --config=<key=value>                              Configuration options for the generation of the expression.
 """
 
 from docopt import docopt
@@ -29,6 +30,7 @@ import subprocess
 import itertools
 
 DECAY_FACTOR = 2.0
+
 SYM_NUM_PROP = 0.5
 NUM_RANGE = 10
 MAX_ELEMENTS = 5
@@ -39,21 +41,22 @@ VECTOR_FACTOR = 1.0
 MATRIX_FACTOR = 1.0
 TENSOR_FACTOR = 1.0
 
-def decay(level):
+def decay(level, decayFactor=DECAY_FACTOR):
 	return 1.0 / (1.0 + level/DECAY_FACTOR)
 
-def generate_list(symbols, numElems, level, max):
+def generate_list(symbols, numElems, level, max, decayFactor=DECAY_FACTOR):
 	list = []
 	n = numElems[level]
 	if level == max - 1:
 		for i in range(n):
-			list.append(generator_engine(symbols, level + 1))
+			list.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
 	else:
 		for i in range(n):
-			list.append(generate_list(symbols, numElems, level + 1, max))
+			list.append(generate_list(symbols, numElems, level + 1, max, decayFactor=decayFactor))
 	return list
 
-def generator_engine(symbols, level):
+def generator_engine(symbols, level, decayFactor=DECAY_FACTOR):
+	# print(decayFactor)
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
 	if level == 0:
 		scalarFactor = SCALAR_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
@@ -64,14 +67,14 @@ def generator_engine(symbols, level):
 		if randNum < scalarFactor:
 			# Generate a scalar
 			# print("Generating scalar:")
-			return generator_engine(symbols, level + 1)
+			return generator_engine(symbols, level + 1, decayFactor=decayFactor)
 		elif randNum < vectorFactor:
 			# Generate a vector
 			# print("Generating vector:")
 			elemNum = random.randint(1, MAX_ELEMENTS)
 			list = []
 			for i in range(elemNum):
-				list.append(generator_engine(symbols, level + 1))
+				list.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
 			with sp.evaluate(EVALUATE_GENERATED):
 				vector = sp.Array(list)
 			return vector
@@ -85,7 +88,7 @@ def generator_engine(symbols, level):
 			for i in range(elemNumN):
 				listM = []
 				for j in range(elemNumM):
-					listM.append(generator_engine(symbols, level + 1))
+					listM.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
 				listN.append(listM)
 			with sp.evaluate(EVALUATE_GENERATED):
 				matrix = sp.Matrix(listN)
@@ -99,11 +102,11 @@ def generator_engine(symbols, level):
 			for i in range(rank):
 				elemNumList.append(random.randint(1, MAX_ELEMENTS))
 			with sp.evaluate(EVALUATE_GENERATED):
-				tensor=sp.Array(generate_list(symbols, elemNumList, level, rank))
+				tensor=sp.Array(generate_list(symbols, elemNumList, level, rank, decayFactor=decayFactor))
 				return tensor
 	else:
 
-		if level > 2 and random.random() > decay(level):
+		if level > 2 and random.random() > decay(level, decayFactor):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > SYM_NUM_PROP:
 				# Generate a random number
@@ -115,8 +118,8 @@ def generator_engine(symbols, level):
 			# Choose a random operator
 			operator = random.choice(["+"])
 			# Generate the left and right branches
-			left = generator_engine(symbols, level + 1)
-			right = generator_engine(symbols, level + 1)
+			left = generator_engine(symbols, level + 1, decayFactor=decayFactor)
+			right = generator_engine(symbols, level + 1, decayFactor=decayFactor)
 			# Generate the expression
 			if operator == "+":
 				return left + right
@@ -250,6 +253,13 @@ def main():
 	# Create the expression
 	exprFile = arguments["-e"]
 
+	# Get the config dictionary
+	configParams = arguments["--config"]
+
+	configDict = {}
+	if configParams:
+		configDict = dict(param.split("=") for param in configParams)
+
 	# Read the content of the file and parse it
 	f = open(exprFile, "r")
 	expr = f.read()
@@ -284,7 +294,7 @@ def main():
 		spExpr = None
 		# Generate the expression
 		with sp.evaluate(EVALUATE_GENERATED):
-			genExpr=generator_engine(symbols, 0)
+			genExpr=generator_engine(symbols, 0, decayFactor=float(configDict.get("decayFactor", DECAY_FACTOR)))
 			spExpr = genExpr
 			# Print the generated expression
 			# print("---")
