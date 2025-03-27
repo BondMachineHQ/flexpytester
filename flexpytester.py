@@ -11,6 +11,7 @@ Usage:
 Options:
   -h --help                                         Show this screen.
   -c, --compute                                     Compute the expression ranging the inputs over the specified ranges.
+  -g, --generate                                    Generate the expression and ranges for the inputs.
   -e <expression>                                   Input expression (when computing), symbols and ranges.
   -o <outputfile>                                   The outputs file name for the generated outputs.
   -i <inputfile>                                    The inputs file name for the generated inputs.
@@ -62,11 +63,11 @@ def generator_engine(symbols, level):
 		randNum = random.random()
 		if randNum < scalarFactor:
 			# Generate a scalar
-			print("Generating scalar:")
+			# print("Generating scalar:")
 			return generator_engine(symbols, level + 1)
 		elif randNum < vectorFactor:
 			# Generate a vector
-			print("Generating vector:")
+			# print("Generating vector:")
 			elemNum = random.randint(1, MAX_ELEMENTS)
 			list = []
 			for i in range(elemNum):
@@ -77,7 +78,7 @@ def generator_engine(symbols, level):
 			
 		elif randNum < matrixFactor:
 			# Generate a matrix
-			print("Generating matrix:")
+			# print("Generating matrix:")
 			elemNumN = random.randint(1, MAX_ELEMENTS)
 			elemNumM = random.randint(1, MAX_ELEMENTS)
 			listN = []
@@ -92,7 +93,7 @@ def generator_engine(symbols, level):
 
 		else:
 			# Generate a tensor
-			print("Generating tensor:")
+			# print("Generating tensor:")
 			rank = random.randint(3, MAX_RANK)
 			elemNumList = []
 			for i in range(rank):
@@ -182,7 +183,7 @@ def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 		outputs = []
 		for var in range(len(lists)):
 			inputs.append(0.0)
-		
+
 		for s in symbols:
 			sName = str(s)
 			val_r, val_i = 0,0
@@ -197,6 +198,7 @@ def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 
 		for exp in serializeExpr(spExpr):
 			res = exp.evalf(subs=subs_dict).as_real_imag()
+		
 			outputs.append(res[0])
 			outputs.append(res[1])
 
@@ -204,7 +206,7 @@ def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 		resultsOutputs.append(outputs)
 	return resultsInputs, resultsOutputs
 
-def generateRanges(spExpr, symbols, exprFile, testRanges, outputfile, inputfile, prefix=""):
+def generateRanges(spExpr, symbols, exprFile, testRanges, outputfile, inputfile, prefix="0f"):
 	symbolsNames, pos_real, pos_imag = symbolExtractor(exprFile)
 	# print(symbolsNames, pos_real, pos_imag)
 	lists = generateLists(symbolsNames, testRanges, pos_real, pos_imag)
@@ -285,9 +287,9 @@ def main():
 			genExpr=generator_engine(symbols, 0)
 			spExpr = genExpr
 			# Print the generated expression
-			print("---")
-			print(sp.python(genExpr))
-			print("---")
+			# print("---")
+			# print(sp.python(genExpr))
+			# print("---")
 
 			if arguments["-s"] != None:
 				# Save the generated expression
@@ -295,12 +297,15 @@ def main():
 				f.write("from sympy import *\n")
 				f.write(sp.python(genExpr))
 				f.write("\nspExpr = e\n")
-				f.write("symbols = ["+",".join([str(s) for s in genExpr.free_symbols])+"]\n")
+				f.write("symbols = ["+",".join([str(s) for s in spExpr.free_symbols])+"]\n")
 				f.write("testRanges = "+str(testRanges)+"\n")
 				f.close	
 				f.flush()
-				if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
-					generateRanges(spExpr, symbols, arguments["-s"], testRanges, arguments["-o"], arguments["-i"])
+
+				subprocess.run(["flexpytester", "--compute", "-e", arguments["-s"], "-i", arguments["-i"], "-o", arguments["-o"]])
+
+				# if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
+					# generateRanges(spExpr, symbols, arguments["-s"], testRanges, arguments["-o"], arguments["-i"])
 
 	else:
 		print("Error: Invalid arguments")
