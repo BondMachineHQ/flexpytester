@@ -28,13 +28,13 @@ import random
 import subprocess
 import itertools
 
-DECAY_FACTOR = 3.0
+DECAY_FACTOR = 2.0
 SYM_NUM_PROP = 0.5
 NUM_RANGE = 10
 MAX_ELEMENTS = 5
 MAX_RANK = 3
 EVALUATE_GENERATED = False
-SCALAR_FACTOR = 1.0
+SCALAR_FACTOR = 5.0
 VECTOR_FACTOR = 1.0
 MATRIX_FACTOR = 1.0
 TENSOR_FACTOR = 1.0
@@ -225,7 +225,7 @@ def generateRanges(spExpr, symbols, exprFile, testRanges, outputfile, inputfile,
 		for outputs in resultsOutputs:
 			for outIdx in range(len(outputs)):
 				out = outputs[outIdx]
-				f.write(prefix+"%f" % out)
+				f.write("%f" % out)
 				if outIdx != len(outputs) - 1:
 					f.write(",")
 			f.write('\n')
@@ -295,7 +295,11 @@ def main():
 				# Save the generated expression
 				f = open(arguments["-s"], "w")
 				f.write("from sympy import *\n")
-				f.write(sp.python(genExpr))
+				f.write("import numpy as np\n")
+				f.write("import sympy as sp\n")
+				f.write("with sp.evaluate(False):\n")
+				for line in sp.python(genExpr).split('\n'):
+					f.write("\t"+line+"\n")
 				f.write("\nspExpr = e\n")
 				f.write("symbols = ["+",".join([str(s) for s in spExpr.free_symbols])+"]\n")
 				f.write("testRanges = "+str(testRanges)+"\n")
