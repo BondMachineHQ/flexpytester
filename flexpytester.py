@@ -42,7 +42,7 @@ MATRIX_FACTOR = 1.0
 TENSOR_FACTOR = 1.0
 
 def decay(level, decayFactor=DECAY_FACTOR):
-	return 1.0 / (1.0 + level/DECAY_FACTOR)
+	return 1.0 / (1.0 + level/decayFactor)
 
 def generate_list(symbols, numElems, level, max, decayFactor=DECAY_FACTOR):
 	list = []
@@ -56,6 +56,7 @@ def generate_list(symbols, numElems, level, max, decayFactor=DECAY_FACTOR):
 	return list
 
 def generator_engine(symbols, level, decayFactor=DECAY_FACTOR):
+	print("Level: "+str(level), "Decay: "+str(decay(level, decayFactor)))
 	# print(decayFactor)
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
 	if level == 0:
@@ -259,7 +260,7 @@ def main():
 	configDict = {}
 	if configParams:
 		configDict = dict(param.split("=") for param in configParams)
-
+	
 	# Read the content of the file and parse it
 	f = open(exprFile, "r")
 	expr = f.read()
