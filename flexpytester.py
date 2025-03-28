@@ -58,7 +58,7 @@ def generate_list(symbols, numElems, level, max, decayFactor=DECAY_FACTOR):
 	return list
 
 def generator_engine(symbols, level, decayFactor=DECAY_FACTOR):
-	print("Level: "+str(level), "Decay: "+str(decay(level, decayFactor)))
+	# print("Level: "+str(level), "Decay: "+str(decay(level, decayFactor)))
 	# print(decayFactor)
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
 	if level == 0:
@@ -327,9 +327,8 @@ def main():
 				f.close	
 				f.flush()
 
-				subprocess.run(["flexpytester", "--compute", "-e", arguments["-s"], "-i", arguments["-i"], "-o", arguments["-o"]])
-
-				# if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
+				if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
+					subprocess.run(["flexpytester", "--compute", "-e", arguments["-s"], "-i", arguments["-i"], "-o", arguments["-o"]])
 					# generateRanges(spExpr, symbols, arguments["-s"], testRanges, arguments["-o"], arguments["-i"])
 
 	else:
