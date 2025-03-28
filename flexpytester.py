@@ -5,11 +5,12 @@
 
 Usage:
   flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--prefix] [--config=<key=value>]...
-  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-t <type>] [--prefix] [--config=<key=value>]...
+  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-r <seed>] [-t <type>] [--prefix] [-d] [--config=<key=value>]...
   flexpytester -h | --help
 
 Options:
   -h --help                                         Show this screen.
+  -d                                                Debug mode.
   -c, --compute                                     Compute the expression ranging the inputs over the specified ranges.
   -g, --generate                                    Generate the expression and ranges for the inputs.
   -e <expression>                                   Input expression (when computing), symbols and ranges.
@@ -17,6 +18,7 @@ Options:
   -i <inputfile>                                    The inputs file name for the generated inputs.
   -s <outputexpression>                             The output expression (when generating).
   -t <type>                                         The type of the numbers, if not specified it is set to float32.
+  -r <seed>                                         The seed for the random number generator.
   --prefix                                          Prefix numbers with the prefix type as given by bmnumbers.
   --config=<key=value>                              Configuration options for the generation of the expression.
 """
@@ -282,6 +284,14 @@ def main():
 			sys.exit(1)
 		
 	elif arguments["--generate"]:
+		if arguments["-r"] != None:
+			random.seed(int(arguments["-r"]))
+			if arguments["-d"]: print("Seed set to: "+arguments["-r"])
+		else:
+			seed=int(time.time())
+			random.seed(seed)
+			if arguments["-d"]: print("Seed set to: "+str(seed))
+
 		localParams = {'symbols': None, 'testRanges': None}
 		globalParams = {'sp': sp, 'np': np}
 		exec(expr, globalParams, localParams)
