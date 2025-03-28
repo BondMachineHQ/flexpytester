@@ -4,30 +4,33 @@
 """Flexpytester
 
 Usage:
-  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--csv] [--prefix] [-d]
-  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-r <seed>] [-t <type>] [--csv] [--prefix] [-d]
+  flexpytester --compute -e <expression> -o <outputfile> -i <inputfile> [-t <type>] [--prefix] [--config=<key=value>]...
+  flexpytester --generate -e <expression> -s <outputexpression> [-o <outputfile>] [-i <inputfile>] [-r <seed>] [-t <type>] [--prefix] [-d] [--config=<key=value>]...
   flexpytester -h | --help
 
 Options:
   -h --help                                         Show this screen.
   -d                                                Debug mode.
   -c, --compute                                     Compute the expression ranging the inputs over the specified ranges.
+  -g, --generate                                    Generate the expression and ranges for the inputs.
   -e <expression>                                   Input expression (when computing), symbols and ranges.
   -o <outputfile>                                   The outputs file name for the generated outputs.
   -i <inputfile>                                    The inputs file name for the generated inputs.
   -s <outputexpression>                             The output expression (when generating).
   -t <type>                                         The type of the numbers, if not specified it is set to float32.
-  --generate                                        Generate the expression.
   -r <seed>                                         The seed for the random number generator.
-  --csv                                             The output file is in CSV format.
   --prefix                                          Prefix numbers with the prefix type as given by bmnumbers.
+  --config=<key=value>                              Configuration options for the generation of the expression.
 """
 
 from docopt import docopt
 import sympy as sp
+import numpy as np
 import sys
 import random
 import time
+import subprocess
+import itertools
 
 DECAY_FACTOR = 3.0
 SYM_NUM_PROP = 0.5
