@@ -42,7 +42,7 @@ config_params["numRangeReal"] = float(10.0)
 config_params["numRangeImag"] = float(10.0)
 config_params["maxElements"] = int(5)
 config_params["maxRank"] = int(3)
-config_params["evaluateGenerated"] = False
+config_params["evaluateGenerated"] = True
 config_params["scalarFreq"] = float(5.0)
 config_params["vectorFreq"] = float(1.0)
 config_params["matrixFreq"] = float(1.0)
@@ -130,8 +130,15 @@ def generator_engine(symbols, level):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > symNumProp:
 				# Generate a random number
-				numRangeReal = config_params["numRangeReal"]
-				return random.uniform(-numRangeReal, numRangeReal)
+				realPart = float(0.0)
+				if random.random() < config_params["symNumPropReal"]:
+					numRangeReal = config_params["numRangeReal"]
+					realPart = random.uniform(-numRangeReal, numRangeReal)
+				imagPart = float(0.0)
+				if random.random() < config_params["symNumPropImag"]:
+					numRangeImag = config_params["numRangeImag"]
+					imagPart = random.uniform(-numRangeImag, numRangeImag)
+				return sp.Float(realPart) + sp.Float(imagPart) * sp.I
 			else:
 				return random.choice(symbols)
 		else:
