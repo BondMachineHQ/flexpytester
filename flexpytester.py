@@ -34,11 +34,14 @@ import itertools
 
 config_params = {}
 config_params["decayFactor"] = float(2.0)
-config_params["maxDepth"] = 5
+config_params["maxDepth"] = int(5)
 config_params["symNumProp"] = float(0.5)
+config_params["symNumPropReal"] = float(0.5)
+config_params["symNumPropImag"] = float(0.5)
 config_params["numRangeReal"] = float(10.0)
-config_params["maxElements"] = 5
-config_params["maxRank"] = 3
+config_params["numRangeImag"] = float(10.0)
+config_params["maxElements"] = int(5)
+config_params["maxRank"] = int(3)
 config_params["evaluateGenerated"] = False
 config_params["scalarFreq"] = float(5.0)
 config_params["vectorFreq"] = float(1.0)
@@ -122,7 +125,7 @@ def generator_engine(symbols, level):
 				return tensor
 	else:
 
-		print("Generating:", level, config_params["maxDepth"])
+		# print("Generating:", level, config_params["maxDepth"])
 		if (level > 2 and random.random() > decay(level)) or (level > int(config_params["maxDepth"])):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > symNumProp:
@@ -281,13 +284,11 @@ def main():
 		configDict = dict(param.split("=") for param in configParams)
 		for key, value in configDict.items():
 			if key in config_params:
-				if key == "decayFactor" or key == "numRangeReal":
+				if isinstance(config_params[key], float):
 					config_params[key] = float(value)
-				elif key == "symNumProp" or key == "scalarFreq" or key == "vectorFreq" or key == "matrixFreq" or key == "tensorFreq":
-					config_params[key] = float(value)
-				elif key == "maxElements" or key == "maxRank" or key == "maxDepth":
+				elif isinstance(config_params[key], int):
 					config_params[key] = int(value)
-				elif key == "evaluateGenerated":
+				elif isinstance(config_params[key], bool):
 					if value == "True" or value == "true":
 						config_params[key] = True
 					elif value == "False" or value == "false":
