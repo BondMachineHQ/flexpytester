@@ -36,7 +36,7 @@ config_params = {}
 config_params["decayFactor"] = float(2.0)
 config_params["maxDepth"] = 5
 config_params["symNumProp"] = float(0.5)
-config_params["numRange"] = float(10.0)
+config_params["numRangeReal"] = float(10.0)
 config_params["maxElements"] = 5
 config_params["maxRank"] = 3
 config_params["evaluateGenerated"] = False
@@ -50,15 +50,15 @@ def decay(level):
 	decayFactor = config_params["decayFactor"]
 	return 1.0 / (1.0 + level/decayFactor)
 
-def generate_list(symbols, numElems, level, max):
+def generate_list(symbols, numElems, level, dim, max):
 	list = []
-	n = numElems[level]
-	if level == max - 1:
+	n = numElems[dim]
+	if dim == max - 1:
 		for i in range(n):
 			list.append(generator_engine(symbols, level + 1))
 	else:
 		for i in range(n):
-			list.append(generate_list(symbols, numElems, level + 1, max))
+			list.append(generate_list(symbols, numElems, level, dim + 1, max))
 	return list
 
 def generator_engine(symbols, level):
@@ -111,23 +111,24 @@ def generator_engine(symbols, level):
 
 		else:
 			# Generate a tensor
-			# print("Generating tensor:")
+			print("Generating tensor:")
 			maxRank = config_params["maxRank"]
 			rank = random.randint(3, maxRank)
 			elemNumList = []
 			for i in range(rank):
 				elemNumList.append(random.randint(1, maxElements))
 			with sp.evaluate(evaluateGenerated):
-				tensor=sp.Array(generate_list(symbols, elemNumList, level, rank))
+				tensor=sp.Array(generate_list(symbols, elemNumList, level, 1, rank))
 				return tensor
 	else:
 
-		if (level > 2 and random.random() > decay(level)) or level > config_params["maxDepth"]:
+		print("Generating:", level, config_params["maxDepth"])
+		if (level > 2 and random.random() > decay(level)) or (level > int(config_params["maxDepth"])):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > symNumProp:
 				# Generate a random number
-				numRange = config_params["numRange"]
-				return random.uniform(-numRange, numRange)
+				numRangeReal = config_params["numRangeReal"]
+				return random.uniform(-numRangeReal, numRangeReal)
 			else:
 				return random.choice(symbols)
 		else:
@@ -280,7 +281,7 @@ def main():
 		configDict = dict(param.split("=") for param in configParams)
 		for key, value in configDict.items():
 			if key in config_params:
-				if key == "decayFactor" or key == "numRange":
+				if key == "decayFactor" or key == "numRangeReal":
 					config_params[key] = float(value)
 				elif key == "symNumProp" or key == "scalarFreq" or key == "vectorFreq" or key == "matrixFreq" or key == "tensorFreq":
 					config_params[key] = float(value)
