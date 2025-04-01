@@ -34,6 +34,7 @@ import itertools
 
 config_params = {}
 config_params["decayFactor"] = float(2.0)
+config_params["maxDepth"] = 5
 config_params["symNumProp"] = float(0.5)
 config_params["numRange"] = float(10.0)
 config_params["maxElements"] = 5
@@ -62,19 +63,17 @@ def generate_list(symbols, numElems, level, max):
 
 def generator_engine(symbols, level):
 	global config_params
-	scalarFreq = config_params["scalarFreq"]
-	vectorFreq = config_params["vectorFreq"]
-	matrixFreq = config_params["matrixFreq"]
-	tensorFreq = config_params["tensorFreq"]
 	maxElements = config_params["maxElements"]
-	numRange = config_params["numRange"]
 	symNumProp = config_params["symNumProp"]
-	maxRank = config_params["maxRank"]
 	evaluateGenerated = config_params["evaluateGenerated"]
 	# print("Level: "+str(level), "Decay: "+str(decay(level, decayFactor)))
 	# print(decayFactor)
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
 	if level == 0:
+		scalarFreq = config_params["scalarFreq"]
+		vectorFreq = config_params["vectorFreq"]
+		matrixFreq = config_params["matrixFreq"]
+		tensorFreq = config_params["tensorFreq"]
 		scalarFactor = scalarFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
 		vectorFactor = scalarFactor + vectorFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
 		matrixFactor = vectorFactor + matrixFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
@@ -113,6 +112,7 @@ def generator_engine(symbols, level):
 		else:
 			# Generate a tensor
 			# print("Generating tensor:")
+			maxRank = config_params["maxRank"]
 			rank = random.randint(3, maxRank)
 			elemNumList = []
 			for i in range(rank):
@@ -122,10 +122,11 @@ def generator_engine(symbols, level):
 				return tensor
 	else:
 
-		if level > 2 and random.random() > decay(level):
+		if (level > 2 and random.random() > decay(level)) or level > config_params["maxDepth"]:
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
 			if random.random() > symNumProp:
 				# Generate a random number
+				numRange = config_params["numRange"]
 				return random.uniform(-numRange, numRange)
 			else:
 				return random.choice(symbols)
@@ -283,7 +284,7 @@ def main():
 					config_params[key] = float(value)
 				elif key == "symNumProp" or key == "scalarFreq" or key == "vectorFreq" or key == "matrixFreq" or key == "tensorFreq":
 					config_params[key] = float(value)
-				elif key == "maxElements" or key == "maxRank":
+				elif key == "maxElements" or key == "maxRank" or key == "maxDepth":
 					config_params[key] = int(value)
 				elif key == "evaluateGenerated":
 					if value == "True" or value == "true":
