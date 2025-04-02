@@ -114,7 +114,7 @@ def generator_engine(symbols, level):
 
 		else:
 			# Generate a tensor
-			print("Generating tensor:")
+			# print("Generating tensor:")
 			maxRank = config_params["maxRank"]
 			rank = random.randint(3, maxRank)
 			elemNumList = []
