@@ -40,6 +40,11 @@ config_params["symNumPropReal"] = float(0.5)
 config_params["symNumPropImag"] = float(0.5)
 config_params["numRangeReal"] = float(10.0)
 config_params["numRangeImag"] = float(10.0)
+config_params["symUnaryProp"] = float(0.0) # The probability of generating a binary operator is 1 - symUnaryProp
+config_params["opAddFreq"] = float(1.0)
+config_params["opMulFreq"] = float(1.0)
+config_params["opAddProb"] = float(0.5)
+config_params["opMulProb"] = float(0.5)
 config_params["maxElements"] = int(5)
 config_params["maxRank"] = int(3)
 config_params["evaluateGenerated"] = True
@@ -143,16 +148,30 @@ def generator_engine(symbols, level):
 				return random.choice(symbols)
 		else:
 		# Otherwise we generate a random operator
-			# Choose a random operator
-			operator = random.choice(["+"])
-			# Generate the left and right branches
-			left = generator_engine(symbols, level + 1)
-			right = generator_engine(symbols, level + 1)
-			# Generate the expression
-			if operator == "+":
-				return left + right
-			
-			# TODO Add more operators
+			if random.random() < config_params["symUnaryProp"]:
+				print("Generating unary operator")
+			else:
+				# Generate the left and right branches
+				left = generator_engine(symbols, level + 1)
+				right = generator_engine(symbols, level + 1)
+				
+				# Choose a random number
+				randNum = random.random()
+
+				if randNum < config_params["opAddProb"]:
+					operator = "+"
+				elif randNum < config_params["opMulProb"]:
+					operator = "*"
+				else:
+					operator = "+"
+
+				# Generate the expression
+				if operator == "+":
+					return left + right
+				elif operator == "*":
+					return left * right
+				
+				# TODO Add more operators
 
 #function to execute: flexpy -e expression.txt --basm --iomap-only
 #output should be: an ordered list of symbols
@@ -208,6 +227,19 @@ def generateLists(symbolsNames, testRanges, pos_real, pos_imag):
 def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 	resultsInputs = []
 	resultsOutputs = []
+
+	outMask = []
+	for exp in serializeExpr(spExpr):
+		re,imm = exp.as_real_imag()
+		if re!= 0:
+			outMask.append(True)
+		else:
+			outMask.append(False)
+		if imm!= 0:
+			outMask.append(True)
+		else:
+			outMask.append(False)
+
 	for values in itertools.product(*lists):  #It generates all possible combination of values
 		subs_dict = {} #That is the dictionary i have to provide to evalf
 		inputs = []
@@ -227,11 +259,16 @@ def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 
 			subs_dict[s] = val_r + val_i * sp.I
 
+		i=0
 		for exp in serializeExpr(spExpr):
 			res = exp.evalf(subs=subs_dict).as_real_imag()
 		
-			outputs.append(res[0])
-			outputs.append(res[1])
+			if outMask[i]:
+				outputs.append(res[0])
+			i+=1
+			if outMask[i]:
+				outputs.append(res[1])
+			i+=1
 
 		resultsInputs.append(inputs)
 		resultsOutputs.append(outputs)
@@ -308,6 +345,10 @@ def main():
 					sys.exit(1)
 
 	evaluateGenerated = config_params["evaluateGenerated"]
+
+	totBinaryOpFreq = config_params["opAddFreq"] + config_params["opMulFreq"]
+	config_params["opAddProb"] = config_params["opAddFreq"] / totBinaryOpFreq
+	config_params["opMulProb"] = config_params["opAddProb"] + config_params["opMulFreq"] / totBinaryOpFreq
 
 	# Read the content of the file and parse it
 	f = open(exprFile, "r")
