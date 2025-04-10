@@ -2,7 +2,7 @@ from sympy import *
 x = Symbol('x', real=False)
 y = Symbol('y', real=False)
 z = Symbol('z', real=False)
-symbols = [x]
+symbols = [x,y,z]
 testRanges = {'real: x': list(np.arange(-1,1,1)),
 	'imag: x': list(np.arange(-3,-1,1)),
 	'real: y': list(np.arange(-1,1.1,0.5)),

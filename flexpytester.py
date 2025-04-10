@@ -32,102 +32,146 @@ import time
 import subprocess
 import itertools
 
-DECAY_FACTOR = 2.0
-SYM_NUM_PROP = 0.5
-NUM_RANGE = 10
-MAX_ELEMENTS = 5
-MAX_RANK = 3
-EVALUATE_GENERATED = False
-SCALAR_FACTOR = 5.0
-VECTOR_FACTOR = 1.0
-MATRIX_FACTOR = 1.0
-TENSOR_FACTOR = 1.0
+config_params = {}
+config_params["decayFactor"] = float(2.0)
+config_params["maxDepth"] = int(5)
+config_params["symNumProp"] = float(0.5)
+config_params["symNumPropReal"] = float(0.5)
+config_params["symNumPropImag"] = float(0.5)
+config_params["numRangeReal"] = float(10.0)
+config_params["numRangeImag"] = float(10.0)
+config_params["symUnaryProp"] = float(0.0) # The probability of generating a binary operator is 1 - symUnaryProp
+config_params["opAddFreq"] = float(1.0)
+config_params["opMulFreq"] = float(1.0)
+config_params["opAddProb"] = float(0.5)
+config_params["opMulProb"] = float(0.5)
+config_params["maxElements"] = int(5)
+config_params["maxRank"] = int(3)
+config_params["evaluateGenerated"] = True
+config_params["scalarFreq"] = float(5.0)
+config_params["vectorFreq"] = float(1.0)
+config_params["matrixFreq"] = float(1.0)
+config_params["tensorFreq"] = float(1.0)
 
-def decay(level, decayFactor=DECAY_FACTOR):
+def decay(level):
+	global config_params
+	decayFactor = config_params["decayFactor"]
 	return 1.0 / (1.0 + level/decayFactor)
 
-def generate_list(symbols, numElems, level, max, decayFactor=DECAY_FACTOR):
+def generate_list(symbols, numElems, level, dim, max):
 	list = []
-	n = numElems[level]
-	if level == max - 1:
+	n = numElems[dim]
+	if dim == max - 1:
 		for i in range(n):
-			list.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
+			list.append(generator_engine(symbols, level + 1))
 	else:
 		for i in range(n):
-			list.append(generate_list(symbols, numElems, level + 1, max, decayFactor=decayFactor))
+			list.append(generate_list(symbols, numElems, level, dim + 1, max))
 	return list
 
-def generator_engine(symbols, level, decayFactor=DECAY_FACTOR):
+def generator_engine(symbols, level):
+	global config_params
+	maxElements = config_params["maxElements"]
+	symNumProp = config_params["symNumProp"]
+	evaluateGenerated = config_params["evaluateGenerated"]
 	# print("Level: "+str(level), "Decay: "+str(decay(level, decayFactor)))
 	# print(decayFactor)
 	# If level is 0, we can potentially generate a Scalar, a Vector, a Matrix or a Tensor
 	if level == 0:
-		scalarFactor = SCALAR_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
-		vectorFactor = scalarFactor + VECTOR_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
-		matrixFactor = vectorFactor + MATRIX_FACTOR / (SCALAR_FACTOR + VECTOR_FACTOR + MATRIX_FACTOR + TENSOR_FACTOR)
+		scalarFreq = config_params["scalarFreq"]
+		vectorFreq = config_params["vectorFreq"]
+		matrixFreq = config_params["matrixFreq"]
+		tensorFreq = config_params["tensorFreq"]
+		scalarFactor = scalarFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
+		vectorFactor = scalarFactor + vectorFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
+		matrixFactor = vectorFactor + matrixFreq / (scalarFreq + vectorFreq + matrixFreq + tensorFreq)
 		# Choose a random number
 		randNum = random.random()
 		if randNum < scalarFactor:
 			# Generate a scalar
 			# print("Generating scalar:")
-			return generator_engine(symbols, level + 1, decayFactor=decayFactor)
+			return generator_engine(symbols, level + 1)
 		elif randNum < vectorFactor:
 			# Generate a vector
 			# print("Generating vector:")
-			elemNum = random.randint(1, MAX_ELEMENTS)
+			elemNum = random.randint(1, maxElements)
 			list = []
 			for i in range(elemNum):
-				list.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
-			with sp.evaluate(EVALUATE_GENERATED):
+				list.append(generator_engine(symbols, level + 1))
+			with sp.evaluate(evaluateGenerated):
 				vector = sp.Array(list)
 			return vector
 			
 		elif randNum < matrixFactor:
 			# Generate a matrix
 			# print("Generating matrix:")
-			elemNumN = random.randint(1, MAX_ELEMENTS)
-			elemNumM = random.randint(1, MAX_ELEMENTS)
+			elemNumN = random.randint(1, maxElements)
+			elemNumM = random.randint(1, maxElements)
 			listN = []
 			for i in range(elemNumN):
 				listM = []
 				for j in range(elemNumM):
-					listM.append(generator_engine(symbols, level + 1, decayFactor=decayFactor))
+					listM.append(generator_engine(symbols, level + 1))
 				listN.append(listM)
-			with sp.evaluate(EVALUATE_GENERATED):
+			with sp.evaluate(evaluateGenerated):
 				matrix = sp.Matrix(listN)
 				return matrix
 
 		else:
 			# Generate a tensor
 			# print("Generating tensor:")
-			rank = random.randint(3, MAX_RANK)
+			maxRank = config_params["maxRank"]
+			rank = random.randint(3, maxRank)
 			elemNumList = []
 			for i in range(rank):
-				elemNumList.append(random.randint(1, MAX_ELEMENTS))
-			with sp.evaluate(EVALUATE_GENERATED):
-				tensor=sp.Array(generate_list(symbols, elemNumList, level, rank, decayFactor=decayFactor))
+				elemNumList.append(random.randint(1, maxElements))
+			with sp.evaluate(evaluateGenerated):
+				tensor=sp.Array(generate_list(symbols, elemNumList, level, 1, rank))
 				return tensor
 	else:
 
-		if level > 2 and random.random() > decay(level, decayFactor):
+		# print("Generating:", level, config_params["maxDepth"])
+		if (level > 2 and random.random() > decay(level)) or (level > int(config_params["maxDepth"])):
 		# If the random number is greater than the decay, then we generate a leaf with a symbol or a number
-			if random.random() > SYM_NUM_PROP:
+			if random.random() > symNumProp:
 				# Generate a random number
-				return random.uniform(-NUM_RANGE, NUM_RANGE)
+				realPart = float(0.0)
+				if random.random() < config_params["symNumPropReal"]:
+					numRangeReal = config_params["numRangeReal"]
+					realPart = random.uniform(-numRangeReal, numRangeReal)
+				imagPart = float(0.0)
+				if random.random() < config_params["symNumPropImag"]:
+					numRangeImag = config_params["numRangeImag"]
+					imagPart = random.uniform(-numRangeImag, numRangeImag)
+				return sp.Float(realPart) + sp.Float(imagPart) * sp.I
 			else:
 				return random.choice(symbols)
 		else:
 		# Otherwise we generate a random operator
-			# Choose a random operator
-			operator = random.choice(["+"])
-			# Generate the left and right branches
-			left = generator_engine(symbols, level + 1, decayFactor=decayFactor)
-			right = generator_engine(symbols, level + 1, decayFactor=decayFactor)
-			# Generate the expression
-			if operator == "+":
-				return left + right
-			
-			# TODO Add more operators
+			if random.random() < config_params["symUnaryProp"]:
+				print("Generating unary operator")
+			else:
+				# Generate the left and right branches
+				left = generator_engine(symbols, level + 1)
+				right = generator_engine(symbols, level + 1)
+				
+				# Choose a random number
+				randNum = random.random()
+
+				if randNum < config_params["opAddProb"]:
+					operator = "+"
+				elif randNum < config_params["opMulProb"]:
+					operator = "*"
+				else:
+					operator = "+"
+
+				# Generate the expression
+				if operator == "+":
+					return left + right
+				elif operator == "*":
+					return left * right
+				
+				# TODO Add more operators
 
 #function to execute: flexpy -e expression.txt --basm --iomap-only
 #output should be: an ordered list of symbols
@@ -183,6 +227,19 @@ def generateLists(symbolsNames, testRanges, pos_real, pos_imag):
 def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 	resultsInputs = []
 	resultsOutputs = []
+
+	outMask = []
+	for exp in serializeExpr(spExpr):
+		re,imm = exp.as_real_imag()
+		if re!= 0:
+			outMask.append(True)
+		else:
+			outMask.append(False)
+		if imm!= 0:
+			outMask.append(True)
+		else:
+			outMask.append(False)
+
 	for values in itertools.product(*lists):  #It generates all possible combination of values
 		subs_dict = {} #That is the dictionary i have to provide to evalf
 		inputs = []
@@ -202,11 +259,16 @@ def evaluateExpression(spExpr, symbols, lists, pos_real, pos_imag):
 
 			subs_dict[s] = val_r + val_i * sp.I
 
+		i=0
 		for exp in serializeExpr(spExpr):
 			res = exp.evalf(subs=subs_dict).as_real_imag()
 		
-			outputs.append(res[0])
-			outputs.append(res[1])
+			if outMask[i]:
+				outputs.append(res[0])
+			i+=1
+			if outMask[i]:
+				outputs.append(res[1])
+			i+=1
 
 		resultsInputs.append(inputs)
 		resultsOutputs.append(outputs)
@@ -250,6 +312,8 @@ def serializeExpr(expr):
 		yield expr
 
 def main():
+	global config_params
+
 	random.seed()
 	arguments = docopt(__doc__, version='Flexpytester 0.0')
 
@@ -262,7 +326,30 @@ def main():
 	configDict = {}
 	if configParams:
 		configDict = dict(param.split("=") for param in configParams)
-	
+		for key, value in configDict.items():
+			if key in config_params:
+				if isinstance(config_params[key], float):
+					config_params[key] = float(value)
+				elif isinstance(config_params[key], int):
+					config_params[key] = int(value)
+				elif isinstance(config_params[key], bool):
+					if value == "True" or value == "true":
+						config_params[key] = True
+					elif value == "False" or value == "false":
+						config_params[key] = False
+					else:
+						print("Error: Invalid config parameter "+key)
+						sys.exit(1)
+				else:
+					print("Error: Invalid config parameter "+key)
+					sys.exit(1)
+
+	evaluateGenerated = config_params["evaluateGenerated"]
+
+	totBinaryOpFreq = config_params["opAddFreq"] + config_params["opMulFreq"]
+	config_params["opAddProb"] = config_params["opAddFreq"] / totBinaryOpFreq
+	config_params["opMulProb"] = config_params["opAddProb"] + config_params["opMulFreq"] / totBinaryOpFreq
+
 	# Read the content of the file and parse it
 	f = open(exprFile, "r")
 	expr = f.read()
@@ -304,8 +391,8 @@ def main():
 	
 		spExpr = None
 		# Generate the expression
-		with sp.evaluate(EVALUATE_GENERATED):
-			genExpr=generator_engine(symbols, 0, decayFactor=float(configDict.get("decayFactor", DECAY_FACTOR)))
+		with sp.evaluate(evaluateGenerated):
+			genExpr=generator_engine(symbols, 0)
 			spExpr = genExpr
 			# Print the generated expression
 			# print("---")
