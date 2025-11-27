@@ -52,6 +52,8 @@ config_params["scalarFreq"] = float(5.0)
 config_params["vectorFreq"] = float(1.0)
 config_params["matrixFreq"] = float(1.0)
 config_params["tensorFreq"] = float(1.0)
+UNARY_FACTOR = 1.0
+BINARY_FACTOR = 1.0
 
 def decay(level):
 	global config_params
@@ -148,31 +150,37 @@ def generator_engine(symbols, level):
 				return random.choice(symbols)
 		else:
 		# Otherwise we generate a random operator
-			if random.random() < config_params["symUnaryProp"]:
-				print("Generating unary operator")
-			else:
-				# Generate the left and right branches
-				left = generator_engine(symbols, level + 1)
-				right = generator_engine(symbols, level + 1)
-				
-				# Choose a random number
-				randNum = random.random()
-
-				if randNum < config_params["opAddProb"]:
-					operator = "+"
-				elif randNum < config_params["opMulProb"]:
-					operator = "*"
-				else:
-					operator = "+"
-
+			# Choose a random operator
+			# As first step choose the arity
+			unaryFactor = UNARY_FACTOR / (UNARY_FACTOR + BINARY_FACTOR)
+			randNum = random.random()
+			if randNum < unaryFactor:
+				# Generate a unary operator
+				operator = random.choice(["sin", "cos", "exp"])
+				# Generate the branch
+				branch = generator_engine(symbols, level + 1, decayFactor=decayFactor)
 				# Generate the expression
-				if operator == "+":
-					return left + right
-				elif operator == "*":
-					return left * right
-				
-				# TODO Add more operators
-
+				if operator == "sin":
+					return sp.sin(branch)
+				elif operator == "cos":
+					return sp.cos(branch)
+				elif operator == "exp":
+					return sp.exp(branch)
+			else:
+				operator = random.choice(["+", "-", "*"])
+			# Generate the left and right branches
+			left = generator_engine(symbols, level + 1, decayFactor=decayFactor)
+			right = generator_engine(symbols, level + 1, decayFactor=decayFactor)
+			# Generate the expression
+			if operator == "+":
+				return left + right
+			elif operator == "-":
+				return left - right
+			elif operator == "*":
+				return left * right
+			elif operator == "/":
+				return left / right
+			
 #function to execute: flexpy -e expression.txt --basm --iomap-only
 #output should be: an ordered list of symbols
 def symbolExtractor(exprFile):
