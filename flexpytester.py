@@ -40,7 +40,8 @@ config_params["symNumPropReal"] = float(0.5)
 config_params["symNumPropImag"] = float(0.5)
 config_params["numRangeReal"] = float(10.0)
 config_params["numRangeImag"] = float(10.0)
-config_params["symUnaryProp"] = float(0.0) # The probability of generating a binary operator is 1 - symUnaryProp
+config_params["symUnaryFreq"] = float(1.0)
+config_params["symBinaryFreq"] = float(1.0)
 config_params["opAddFreq"] = float(1.0)
 config_params["opMulFreq"] = float(1.0)
 config_params["opAddProb"] = float(0.5)
@@ -52,8 +53,6 @@ config_params["scalarFreq"] = float(5.0)
 config_params["vectorFreq"] = float(1.0)
 config_params["matrixFreq"] = float(1.0)
 config_params["tensorFreq"] = float(1.0)
-UNARY_FACTOR = 1.0
-BINARY_FACTOR = 1.0
 
 def decay(level):
 	global config_params
@@ -152,13 +151,14 @@ def generator_engine(symbols, level):
 		# Otherwise we generate a random operator
 			# Choose a random operator
 			# As first step choose the arity
-			unaryFactor = UNARY_FACTOR / (UNARY_FACTOR + BINARY_FACTOR)
-			randNum = random.random()
-			if randNum < unaryFactor:
+			unaryFreq = config_params["symUnaryFreq"]
+			binaryFreq = config_params["symBinaryFreq"]
+			unaryFactor = unaryFreq / (unaryFreq + binaryFreq)
+			if random.random() < unaryFactor:
 				# Generate a unary operator
 				operator = random.choice(["sin", "cos", "exp"])
 				# Generate the branch
-				branch = generator_engine(symbols, level + 1, decayFactor=decayFactor)
+				branch = generator_engine(symbols, level + 1)
 				# Generate the expression
 				if operator == "sin":
 					return sp.sin(branch)
@@ -168,18 +168,21 @@ def generator_engine(symbols, level):
 					return sp.exp(branch)
 			else:
 				operator = random.choice(["+", "-", "*"])
-			# Generate the left and right branches
-			left = generator_engine(symbols, level + 1, decayFactor=decayFactor)
-			right = generator_engine(symbols, level + 1, decayFactor=decayFactor)
-			# Generate the expression
-			if operator == "+":
-				return left + right
-			elif operator == "-":
-				return left - right
-			elif operator == "*":
-				return left * right
-			elif operator == "/":
-				return left / right
+				# Generate the left and right branches
+				left = generator_engine(symbols, level + 1)
+				right = generator_engine(symbols, level + 1)
+				# Generate the expression
+				if operator == "+":
+					return left + right
+				elif operator == "-":
+					return left - right
+				elif operator == "*":
+					return left * right
+				elif operator == "/":
+					return left / right
+			
+			print("Error: Invalid operator")
+			sys.exit(1)
 			
 #function to execute: flexpy -e expression.txt --basm --iomap-only
 #output should be: an ordered list of symbols
