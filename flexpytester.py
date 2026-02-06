@@ -360,7 +360,21 @@ def main():
 	totBinaryOpFreq = config_params["opAddFreq"] + config_params["opMulFreq"]
 	config_params["opAddProb"] = config_params["opAddFreq"] / totBinaryOpFreq
 	config_params["opMulProb"] = config_params["opAddProb"] + config_params["opMulFreq"] / totBinaryOpFreq
-
+	
+	prefixData = "0f"
+	if arguments["-t"] != None:
+		numType = arguments["-t"]
+		prefixCommand = ["bmnumbers", "-get-prefix", numType]
+		try:
+			result = subprocess.run(prefixCommand, capture_output=True, text=True, check=True)
+			prefixData = result.stdout.strip()
+		except subprocess.CalledProcessError as e:
+			print("Error: bmnumbers command failed with error code "+str(e.returncode))
+			sys.exit(1)
+		except FileNotFoundError:
+			print("Error: bmnumbers command not found")
+			sys.exit(1)
+			
 	# Read the content of the file and parse it
 	f = open(exprFile, "r")
 	expr = f.read()
@@ -375,7 +389,7 @@ def main():
 		symbols = localParams['symbols']
 
 		if testRanges != None and arguments["-o"] != None and arguments["-i"] != None:
-			generateRanges(spExpr, symbols, exprFile, testRanges, arguments["-o"], arguments["-i"])
+			generateRanges(spExpr, symbols, exprFile, testRanges, arguments["-o"], arguments["-i"], prefixData)
 
 		if spExpr is None:
 			print("Error: The expression is not valid")
